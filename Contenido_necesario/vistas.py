@@ -30,10 +30,17 @@ class PantallaBase(tk.Frame):
                  bg=Tema.PRIMARIO, fg=Tema.BLANCO).pack()
         tk.Label(lateral, text=rol.upper(), font=Tema.fuente(8, bold=True),
                  bg=Tema.PRIMARIO, fg="#BDE8F6").pack(pady=(2, 18))
-        for etiqueta, destino in MENUS_POR_ROL.get(rol, []):
+        
+        menus = MENUS_POR_ROL.get(rol, [])
+        i = 0
+        while i < len(menus):
+            etiqueta = menus[i][0]
+            destino = menus[i][1]
             FabricaWidgets.boton(lateral, etiqueta, lambda d=destino: self.app.mostrar(d),
                                  color=Tema.FONDO_SUAVE, color_texto=Tema.PRIMARIO,
                                  ancho=198, alto=40, size=11).pack(pady=5)
+            i += 1
+
         cerrar = tk.Label(lateral, text="Cerrar sesión", font=Tema.fuente(10, bold=True),
                           bg=Tema.PRIMARIO, fg="#BDE8F6", cursor="hand2")
         cerrar.pack(side="bottom", pady=22)
@@ -100,7 +107,9 @@ class PantallaRegistroUsuario(PantallaBase):
 
         tk.Label(card, text="Ingresar como", font=Tema.fuente(10, bold=True),
                  bg=Tema.CARD, fg=Tema.TEXTO).place(relx=0.5, y=258, anchor="center")
-        self.chips = GrupoChips(card, list(REGISTRO_ROLES.keys()))
+        
+        claves_roles = list(REGISTRO_ROLES.keys())
+        self.chips = GrupoChips(card, claves_roles)
         self.chips.place(relx=0.5, y=292, anchor="center")
         FabricaWidgets.boton(card, "Confirmar", self._continuar).place(relx=0.5, y=356, anchor="center")
         volver = tk.Label(card, text="Volver al inicio de sesión", font=Tema.fuente(9),
@@ -110,7 +119,8 @@ class PantallaRegistroUsuario(PantallaBase):
 
     def _continuar(self):
         correo = self.e_correo.get().strip()
-        p1, p2 = self.e_pass.get().strip(), self.e_conf.get().strip()
+        p1 = self.e_pass.get().strip()
+        p2 = self.e_conf.get().strip()
         rol = self.chips.valor()
         if not correo or not p1:
             messagebox.showwarning("NeoAtención", "Completa correo y contraseña.")
@@ -144,7 +154,11 @@ class PantallaRegistroRol(PantallaBase):
 
         self.entradas: dict[str, object] = {}
         y = 78
-        for campo in self.estrategia.campos():
+        
+        campos_estrategia = self.estrategia.campos()
+        i = 0
+        while i < len(campos_estrategia):
+            campo = campos_estrategia[i]
             if campo.tipo == "chips":
                 tk.Label(card, text=campo.etiqueta, font=Tema.fuente(9), bg=Tema.CARD,
                          fg=Tema.TEXTO_TENUE).place(x=51, y=y)
@@ -155,13 +169,23 @@ class PantallaRegistroRol(PantallaBase):
             else:
                 self.entradas[campo.clave] = FabricaWidgets.campo_form(card, campo.etiqueta, 45, y, 330)
                 y += 74
+            i += 1
 
         FabricaWidgets.boton(card, "Confirmar", self._guardar).place(relx=0.5, y=460, anchor="center")
 
     def _guardar(self):
         datos = {}
-        for clave, w in self.entradas.items():
-            datos[clave] = w.valor() if isinstance(w, GrupoChips) else w.get().strip()
+        claves = list(self.entradas.keys())
+        i = 0
+        while i < len(claves):
+            clave = claves[i]
+            w = self.entradas[clave]
+            if isinstance(w, GrupoChips):
+                datos[clave] = w.valor()
+            else:
+                datos[clave] = w.get().strip()
+            i += 1
+            
         try:
             self.estrategia.guardar(self.app.repos, datos, self.id_usuario)
         except Exception as e:
@@ -191,10 +215,16 @@ class PantallaRegistrarPaciente(PantallaConMenu):
         card.pack(padx=40, pady=10, anchor="w")
         self.entradas = {}
         y = 34
-        for clave, etiqueta in [("nombre", "Nombre"), ("apellido", "Apellido"),
-                                ("edad", "Edad"), ("nivel", "Nivel escolar")]:
+        
+        campos_paciente = [("nombre", "Nombre"), ("apellido", "Apellido"), ("edad", "Edad"), ("nivel", "Nivel escolar")]
+        i = 0
+        while i < len(campos_paciente):
+            clave = campos_paciente[i][0]
+            etiqueta = campos_paciente[i][1]
             self.entradas[clave] = FabricaWidgets.campo_form(card, etiqueta, 45, y, 330)
             y += 78
+            i += 1
+            
         FabricaWidgets.boton(card, "Confirmar", self._guardar).place(relx=0.5, y=360, anchor="center")
 
     def _guardar(self):
@@ -227,8 +257,15 @@ class PantallaCuestionario(PantallaConMenu):
         tk.Label(sel, text="Paciente:", font=Tema.fuente(10, bold=True),
                  bg=Tema.FONDO, fg=Tema.MARCA).pack(side="left")
         self.var_pac = tk.StringVar(value=f"{pacientes[0].id} - {pacientes[0].nombre}")
-        tk.OptionMenu(sel, self.var_pac,
-                      *[f"{p.id} - {p.nombre} {p.apellido}" for p in pacientes]).pack(side="left", padx=8)
+        
+        lista_pacientes = []
+        i_pac = 0
+        while i_pac < len(pacientes):
+            p = pacientes[i_pac]
+            lista_pacientes.append(f"{p.id} - {p.nombre} {p.apellido}")
+            i_pac += 1
+            
+        tk.OptionMenu(sel, self.var_pac, *lista_pacientes).pack(side="left", padx=8)
 
         cont = tk.Frame(self.contenido, bg=Tema.FONDO)
         cont.pack(fill="both", expand=True, padx=40, pady=10)
@@ -251,7 +288,10 @@ class PantallaCuestionario(PantallaConMenu):
         tk.Label(parent, text=titulo, font=Tema.fuente(13, bold=True),
                  bg=Tema.FONDO, fg=Tema.MARCA).pack(anchor="w", pady=(10, 4))
         variables = []
-        for texto in preguntas:
+        
+        i_preg = 0
+        while i_preg < len(preguntas):
+            texto = preguntas[i_preg]
             card = tk.Frame(parent, bg=Tema.CARD, padx=14, pady=8)
             card.pack(fill="x", pady=4)
             tk.Label(card, text=texto, font=Tema.fuente(10), bg=Tema.CARD,
@@ -259,17 +299,36 @@ class PantallaCuestionario(PantallaConMenu):
             v = tk.IntVar(value=0)
             fila = tk.Frame(card, bg=Tema.CARD)
             fila.pack(anchor="w", pady=(4, 0))
-            for i, op in enumerate(escala):
-                tk.Radiobutton(fila, text=op, variable=v, value=i, bg=Tema.CARD,
+            
+            i_esc = 0
+            while i_esc < len(escala):
+                op = escala[i_esc]
+                tk.Radiobutton(fila, text=op, variable=v, value=i_esc, bg=Tema.CARD,
                                fg=Tema.TEXTO, selectcolor=Tema.FONDO_SUAVE,
                                font=Tema.fuente(9), activebackground=Tema.CARD).pack(side="left", padx=4)
+                i_esc += 1
+                
             variables.append(v)
+            i_preg += 1
+            
         return variables
 
     def _guardar(self):
         id_paciente = int(self.var_pac.get().split(" - ")[0])
-        p_ina, p_hip, grupo, nivel = self.app.servicios.cuestionario.evaluar(
-            [v.get() for v in self.vars_ina], [v.get() for v in self.vars_hip])
+        
+        valores_ina = []
+        i = 0
+        while i < len(self.vars_ina):
+            valores_ina.append(self.vars_ina[i].get())
+            i += 1
+            
+        valores_hip = []
+        j = 0
+        while j < len(self.vars_hip):
+            valores_hip.append(self.vars_hip[j].get())
+            j += 1
+            
+        p_ina, p_hip, grupo, nivel = self.app.servicios.cuestionario.evaluar(valores_ina, valores_hip)
         resumen = f"Ina {p_ina}/27 - Hip {p_hip}/27"
         self.app.repos.paciente.actualizar_cuestionario(id_paciente, resumen, grupo, nivel)
         messagebox.showinfo("NeoAtención",
@@ -321,13 +380,29 @@ class PantallaAgendar(PantallaConMenu):
         tk.Label(card, text="Paciente", font=Tema.fuente(9), bg=Tema.CARD,
                  fg=Tema.TEXTO_TENUE).place(x=51, y=35)
         self.var_pac = tk.StringVar(value=f"{pacientes[0].id} - {pacientes[0].nombre}")
-        tk.OptionMenu(card, self.var_pac,
-                      *[f"{p.id} - {p.nombre} {p.apellido}" for p in pacientes]).place(x=45, y=55)
+        
+        lista_pacientes = []
+        i = 0
+        while i < len(pacientes):
+            p = pacientes[i]
+            lista_pacientes.append(f"{p.id} - {p.nombre} {p.apellido}")
+            i += 1
+            
+        tk.OptionMenu(card, self.var_pac, *lista_pacientes).place(x=45, y=55)
+        
         tk.Label(card, text="Actividad", font=Tema.fuente(9), bg=Tema.CARD,
                  fg=Tema.TEXTO_TENUE).place(x=51, y=110)
         self.var_act = tk.StringVar(value=f"{actividades[0].id} - {actividades[0].nombre}")
-        tk.OptionMenu(card, self.var_act,
-                      *[f"{a.id} - {a.nombre}" for a in actividades]).place(x=45, y=130)
+        
+        lista_actividades = []
+        j = 0
+        while j < len(actividades):
+            a = actividades[j]
+            lista_actividades.append(f"{a.id} - {a.nombre}")
+            j += 1
+            
+        tk.OptionMenu(card, self.var_act, *lista_actividades).place(x=45, y=130)
+        
         self.e_fecha = FabricaWidgets.campo_form(card, "Fecha (AAAA-MM-DD)", 45, 180, 300)
         self.e_fecha.insert(0, str(date.today()))
         FabricaWidgets.boton(card, "Agendar", self._agendar).place(relx=0.5, y=300, anchor="center")
@@ -351,10 +426,25 @@ class PantallaReportes(PantallaConMenu):
         sel.pack(anchor="w", padx=40)
         tk.Label(sel, text="Paciente:", font=Tema.fuente(10, bold=True),
                  bg=Tema.FONDO, fg=Tema.MARCA).pack(side="left")
-        inicial = next((p for p in pacientes if p.id == id_paciente), pacientes[0])
+        
+        inicial = pacientes[0]
+        i_busq = 0
+        while i_busq < len(pacientes):
+            if pacientes[i_busq].id == id_paciente:
+                inicial = pacientes[i_busq]
+                break
+            i_busq += 1
+            
         self.var_pac = tk.StringVar(value=f"{inicial.id} - {inicial.nombre} {inicial.apellido}")
-        tk.OptionMenu(sel, self.var_pac,
-                      *[f"{p.id} - {p.nombre} {p.apellido}" for p in pacientes],
+        
+        lista_pacientes = []
+        i = 0
+        while i < len(pacientes):
+            p = pacientes[i]
+            lista_pacientes.append(f"{p.id} - {p.nombre} {p.apellido}")
+            i += 1
+            
+        tk.OptionMenu(sel, self.var_pac, *lista_pacientes,
                       command=lambda _: self._recargar()).pack(side="left", padx=8)
         self.cuerpo = tk.Frame(self.contenido, bg=Tema.FONDO)
         self.cuerpo.pack(fill="both", expand=True)

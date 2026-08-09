@@ -417,11 +417,14 @@ class PantallaAgendar(PantallaConMenu):
 class PantallaReportes(PantallaConMenu):
     def __init__(self, master, app, id_paciente: int | None = None):
         super().__init__(master, app, "Reporte del paciente")
+        
         pacientes = app.repos.paciente.listar()
+        
         if not pacientes:
             tk.Label(self.contenido, text="No hay pacientes registrados.",
                      font=Tema.fuente(12), bg=Tema.FONDO, fg=Tema.MARCA).pack(padx=40)
             return
+            
         sel = tk.Frame(self.contenido, bg=Tema.FONDO)
         sel.pack(anchor="w", padx=40)
         tk.Label(sel, text="Paciente:", font=Tema.fuente(10, bold=True),
@@ -446,8 +449,47 @@ class PantallaReportes(PantallaConMenu):
             
         tk.OptionMenu(sel, self.var_pac, *lista_pacientes,
                       command=lambda _: self._recargar()).pack(side="left", padx=8)
+                      
         self.cuerpo = tk.Frame(self.contenido, bg=Tema.FONDO)
         self.cuerpo.pack(fill="both", expand=True)
+        
+        self._recargar()
 
     def _recargar(self):
-        pass
+        hijos = self.cuerpo.winfo_children()
+        i_limpieza = 0
+        while i_limpieza < len(hijos):
+            hijos[i_limpieza].destroy()
+            i_limpieza += 1
+            
+        id_paciente = int(self.var_pac.get().split(" - ")[0])
+        
+        pacientes = self.app.repos.paciente.listar()
+        paciente_actual = None
+        i_pac = 0
+        while i_pac < len(pacientes):
+            if pacientes[i_pac].id == id_paciente:
+                paciente_actual = pacientes[i_pac]
+                break
+            i_pac += 1
+            
+        if paciente_actual:
+            tk.Label(self.cuerpo, text="Resultados del Cuestionario:", font=Tema.fuente(12, bold=True), bg=Tema.FONDO, fg=Tema.MARCA).pack(anchor="w", padx=40, pady=(20, 5))
+            texto_cuestionario = f"Puntuación: {paciente_actual.cuestionario}\nGrupo: {paciente_actual.grupo_TDAH}\nNivel: {paciente_actual.nivel_TDAH}"
+            
+            if not paciente_actual.cuestionario:
+                texto_cuestionario = "Aún no se ha realizado el cuestionario."
+                
+            tk.Label(self.cuerpo, text=texto_cuestionario, font=Tema.fuente(10), bg=Tema.FONDO, fg=Tema.TEXTO, justify="left").pack(anchor="w", padx=40)
+
+            actividades = self.app.repos.agenda.por_paciente(id_paciente)
+            tk.Label(self.cuerpo, text="Actividades Agendadas:", font=Tema.fuente(12, bold=True), bg=Tema.FONDO, fg=Tema.MARCA).pack(anchor="w", padx=40, pady=(20, 5))
+            
+            if actividades:
+                i_act = 0
+                while i_act < len(actividades):
+                    act = actividades[i_act]
+                    tk.Label(self.cuerpo, text=f"- {act[0]} ({act[1]})", font=Tema.fuente(10), bg=Tema.FONDO, fg=Tema.TEXTO).pack(anchor="w", padx=40)
+                    i_act += 1
+            else:
+                tk.Label(self.cuerpo, text="No hay actividades agendadas.", font=Tema.fuente(10), bg=Tema.FONDO, fg=Tema.TEXTO).pack(anchor="w", padx=40)

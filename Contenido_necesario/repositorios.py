@@ -39,7 +39,10 @@ class InicializadorEsquema:
             CREATE TABLE IF NOT EXISTS Especialista (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(50),
-                descripcion VARCHAR(255)
+                apellido VARCHAR(50),
+                datos_profesional VARCHAR(255),
+                id_Usuario INT,
+                FOREIGN KEY (id_Usuario) REFERENCES Usuario(id)
             );
         """)
         cur.execute("""
@@ -129,49 +132,119 @@ class RepositorioUsuario(IRepositorioUsuario):
         cur.close()
         if fila:
             return Usuario(id=fila[0], correo=fila[1], contrasena="", rol=self._rol(fila[0]))
-        return Noneclass RepositorioTutor:
-    def __init__(self, conexion):
-        self.conexion = conexion
+        return None
 
-    def insertar_tutor_padre(self, nombre, apellido, correo_electronico, telefono, parentesco, id_usuario):
-        cursor = self.conexion.cursor()
-        sql = "INSERT INTO crear_Tutor_Padre (nombre, apellido, correo_electronico, telefono, Parentesco, id_Usuario) VALUES (%s, %s, %s, %s, %s, %s)"
-        valores = (nombre, apellido, correo_electronico, telefono, parentesco, id_usuario)
-        cursor.execute(sql, valores)
-        self.conexion.commit()
+class RepositorioTutor:
+    def __init__(self, conexion: ConexionBD):
+        self._conexion = conexion
+
+    def crear(self, datos: dict, id_usuario: int) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "INSERT INTO crear_Tutor_Padre (nombre, apellido, correo_electronico, telefono, Parentesco, id_Usuario) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            (datos.get("nombre"), datos.get("apellido"), "", datos.get("telefono"), datos.get("parentesco"), id_usuario)
+        )
+        self._conexion.commit()
+        cur.close()
+
+    def id_por_usuario(self, id_usuario: int) -> int | None:
+        cur = self._conexion.cursor()
+        cur.execute("SELECT id FROM crear_Tutor_Padre WHERE id_Usuario = %s", (id_usuario,))
+        fila = cur.fetchone()
+        cur.close()
+        return fila[0] if fila else None
 
 class RepositorioDocente:
-    def __init__(self, conexion):
-        self.conexion = conexion
+    def __init__(self, conexion: ConexionBD):
+        self._conexion = conexion
 
-    def insertar_docente(self, nombre, apellido, correo_electronico, telefono, id_usuario):
-        cursor = self.conexion.cursor()
-        sql = "INSERT INTO crear_Docente (nombre, apellido, correo_electronico, telefono, id_Usuario) VALUES (%s, %s, %s, %s, %s)"
-        valores = (nombre, apellido, correo_electronico, telefono, id_usuario)
-        cursor.execute(sql, valores)
-        self.conexion.commit()
+    def crear(self, datos: dict, id_usuario: int) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "INSERT INTO crear_Docente (nombre, apellido, correo_electronico, telefono, nombre_escuela, id_Usuario) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            (datos.get("nombre"), datos.get("apellido"), "", datos.get("telefono"), datos.get("nombre_escuela"), id_usuario)
+        )
+        self._conexion.commit()
+        cur.close()
+
+class RepositorioEspecialista:
+    def __init__(self, conexion: ConexionBD):
+        self._conexion = conexion
+
+    def crear(self, datos: dict, id_usuario: int) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "INSERT INTO Especialista (nombre, apellido, datos_profesional, id_Usuario) "
+            "VALUES (%s, %s, %s, %s)",
+            (datos.get("nombre"), datos.get("apellido"), datos.get("datos_profesional"), id_usuario)
+        )
+        self._conexion.commit()
+        cur.close()
 
 class RepositorioPaciente:
-    def __init__(self, conexion):
-        self.conexion = conexion
+    def __init__(self, conexion: ConexionBD):
+        self._conexion = conexion
 
-    def registrar_historial_clinico(self, id_paciente, fecha, puntaje_inatencion, puntaje_hiperactividad, grupos_tdah, nivel_tdah):
-        cursor = self.conexion.cursor()
-        sql = "INSERT INTO resultado_test (id_Paciente, fecha, puntaje_inatencion, puntaje_hiperactividad, grupos_TDAH, nivel_TDAH) VALUES (%s, %s, %s, %s, %s, %s)"
-        valores = (id_paciente, fecha, puntaje_inatencion, puntaje_hiperactividad, grupos_tdah, nivel_tdah)
-        cursor.execute(sql, valores)
-        self.conexion.commit()
+    def crear(self, paciente: Paciente) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "INSERT INTO Paciente (nombre, apellido, edad, Nivel_escolar, id_tutor_padre) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (paciente.nombre, paciente.apellido, paciente.edad, paciente.nivel_escolar, paciente.id_tutor_padre)
+        )
+        self._conexion.commit()
+        cur.close()
+
+    def listar(self) -> list[Paciente]:
+        cur = self._conexion.cursor()
+        cur.execute("SELECT id, nombre, apellido, edad, Nivel_escolar, id_tutor_padre FROM Paciente")
+        filas = cur.fetchall()
+        cur.close()
+        pacientes = []
+        i = 0
+        while i < len(filas):
+            f = filas[i]
+            pacientes.append(Paciente(id=f[0], nombre=f[1], apellido=f[2], edad=f[3], nivel_escolar=f[4], id_tutor_padre=f[5]))
+            i += 1
+        return pacientes
+
+    def actualizar_cuestionario(self, id_paciente: int, resumen: str, grupo: str, nivel: str) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "UPDATE Paciente SET cuestionario = %s, grupo_TDAH = %s, nivel_TDAH = %s WHERE id = %s",
+            (resumen, grupo, nivel, id_paciente)
+        )
+        self._conexion.commit()
+        cur.close()
 
 class RepositorioActividad:
-    def __init__(self, conexion):
-        self.conexion = conexion
+    def __init__(self, conexion: ConexionBD):
+        self._conexion = conexion
 
-    def insertar_actividad(self, nombre_actividad, descripcion, tipo_actividad, designacion_actividad, objetivo):
-        cursor = self.conexion.cursor()
-        sql = "INSERT INTO Actividades (nombre_actividad, descripcion, Tipo_actividad, Designacion_actividad, objetivo) VALUES (%s, %s, %s, %s, %s)"
-        valores = (nombre_actividad, descripcion, tipo_actividad, designacion_actividad, objetivo)
-        cursor.execute(sql, valores)
-        self.conexion.commit()
+    def crear(self, actividad: Actividad) -> None:
+        cur = self._conexion.cursor()
+        cur.execute(
+            "INSERT INTO Actividades (nombre_actividad, descripcion, Tipo_actividad, Designacion_actividad, objetivo) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (actividad.nombre, actividad.descripcion, actividad.tipo, actividad.designacion, actividad.objetivo)
+        )
+        self._conexion.commit()
+        cur.close()
+
+    def listar(self) -> list[Actividad]:
+        cur = self._conexion.cursor()
+        cur.execute("SELECT id, nombre_actividad, descripcion, Tipo_actividad, Designacion_actividad, objetivo FROM Actividades")
+        filas = cur.fetchall()
+        cur.close()
+        actividades = []
+        i = 0
+        while i < len(filas):
+            f = filas[i]
+            actividades.append(Actividad(id=f[0], nombre=f[1], descripcion=f[2], tipo=f[3], designacion=f[4], objetivo=f[5]))
+            i += 1
+        return actividades
 
 class RepositorioAgenda:
     def __init__(self, conexion: ConexionBD):

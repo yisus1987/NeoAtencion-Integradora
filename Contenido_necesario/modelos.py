@@ -6,7 +6,7 @@ class ConfiguracionBD:
     port: int = 3307
     user: str = "root"
     password: str = "patho2325"
-    database: str = "gestion_tdah"
+    database: str = "integradora"
 
 @dataclass
 class Usuario:

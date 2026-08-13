@@ -136,13 +136,15 @@ class PantallaRegistroUsuario(PantallaBase):
         except Exception as e:
             messagebox.showerror("NeoAtención", f"No se pudo crear la cuenta:\n{e}")
             return
-        self.app.mostrar("registro_rol", id_usuario=id_usuario, rol=rol)
+        
+        self.app.mostrar("registro_rol", id_usuario=id_usuario, rol=rol, correo=correo)
 
 class PantallaRegistroRol(PantallaBase):
-    def __init__(self, master, app, id_usuario: int, rol: str):
+    def __init__(self, master, app, id_usuario: int, rol: str, correo: str = ""):
         super().__init__(master, app)
         self.id_usuario = id_usuario
         self.estrategia = REGISTRO_ROLES[rol]
+        self.correo = correo
         wrap = tk.Frame(self, bg=Tema.FONDO)
         wrap.place(relx=0.5, rely=0.5, anchor="center")
         self.cabecera_marca(wrap).pack(pady=(0, 14))
@@ -185,6 +187,8 @@ class PantallaRegistroRol(PantallaBase):
             else:
                 datos[clave] = w.get().strip()
             i += 1
+            
+        datos["correo_electronico"] = self.correo
             
         try:
             self.estrategia.guardar(self.app.repos, datos, self.id_usuario)

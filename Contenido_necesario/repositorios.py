@@ -154,7 +154,14 @@ class RepositorioTutor:
         cur.execute(
             "INSERT INTO crear_Tutor_Padre (nombre, apellido, correo_electronico, telefono, Parentesco, id_Usuario) "
             "VALUES (%s, %s, %s, %s, %s, %s)",
-            (datos.get("nombre"), datos.get("apellido"), "", datos.get("telefono"), datos.get("parentesco"), id_usuario)
+            (
+                datos.get("nombre"), 
+                datos.get("apellido"), 
+                datos.get("correo_electronico"),
+                datos.get("telefono"), 
+                datos.get("parentesco"), 
+                id_usuario
+            )
         )
         self._conexion.commit()
         cur.close()
@@ -175,7 +182,14 @@ class RepositorioDocente:
         cur.execute(
             "INSERT INTO crear_Docente (nombre, apellido, correo_electronico, telefono, nombre_escuela, id_Usuario) "
             "VALUES (%s, %s, %s, %s, %s, %s)",
-            (datos.get("nombre"), datos.get("apellido"), "", datos.get("telefono"), datos.get("nombre_escuela"), id_usuario)
+            (
+                datos.get("nombre"), 
+                datos.get("apellido"), 
+                datos.get("correo_electronico"),
+                datos.get("telefono"), 
+                datos.get("nombre_escuela"), 
+                id_usuario
+            )
         )
         self._conexion.commit()
         cur.close()
